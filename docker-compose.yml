@@ -1,0 +1,39 @@
+version: '2'
+services:
+    web:
+        # TODO: Смените username и project на подходящие вам значения.
+        image: registry.gitlab.com/igordr1999/docker_deploy:${CI_BUILD_REF_NAME}
+        build: ./web
+        environment:
+            # переменные окружения, значения которых пробрасываются
+            #  в контейнер из сервера
+            - SECRET_KEY
+        command: uwsgi /usr/src/app/uwsgi.ini
+        volumes:
+            - /usr/src/app/static
+        restart: unless-stopped
+
+    postgres:
+        image: postgres:9.6
+        environment:
+            # переменные окружения: пользователь и база данных
+            - POSTGRES_USER=root
+            - POSTGRES_DB=database
+        volumes:
+            # хранилище данных
+            - /var/lib/postgresql/data
+        restart: unless-stopped
+
+    nginx:
+        image: nginx:mainline
+        ports:
+            # открытые наружу порты
+            - "80:80"
+            - "443:443"
+        volumes:
+            # хранилища конфигов и статических файлов
+            - ./nginx:/etc/nginx:ro
+            - /usr/src/app/static:ro
+        depends_on:
+            - web
+        restart: unless-stopped
